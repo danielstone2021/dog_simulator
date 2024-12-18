@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宠物狗养成模拟游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+        }
+        .container {
+            width: 50%;
+            margin: 50px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #ffffff;
+        }
+        h1 {
+            color: #333;
+        }
+        #score-board {
+            margin-bottom: 20px;
+        }
+        #score-board div {
+            font-size: 16px;
+            color: #555;
+        }
+        .question {
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+        .option {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px;
+            margin: 5px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .option:hover {
+            background-color: #45a049;
+        }
+        .end-message {
+            font-size: 20px;
+            margin-top: 20px;
+            color: #ff6347;
+        }
+        .option-description {
+            font-size: 16px;
+            color: #333;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .restart-button {
+            display: none;
+            background-color: #008CBA;
+            color: white;
+            padding: 10px 20px;
+            margin-top: 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .restart-button:hover {
+            background-color: #007bb5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>宠物狗养成模拟游戏</h1>
+    <div id="score-board">
+        <div id="money">金钱: 500</div>
+        <div id="health">生命值: 10</div>
+        <div id="mood">心情: 10</div>
+    </div>
+    <div id="question" class="question"></div>
+    <div id="options"></div>
+    <div id="option-description" class="option-description"></div>
+    <div id="end-message" class="end-message"></div>
+    <button id="restart-button" class="restart-button" onclick="startGame()">重新开始</button>
+</div>
+
+<script>
+    // 游戏初始状态
+    let money = 500;
+    let health = 10;
+    let mood = 10;
+    let gameEnded = false;
+
+    const questions = [
+        {
+            question: "1.你刚买回来一只2个月大的小狗，还没有打疫苗，但是现在它看起来有点脏，你会？",
+            options: [
+                { text: "给它洗澡", health: 0, money: 0, mood: 0, end: "生病死亡", description: "小狗体抗力太弱，洗完澡后重病，没有救回来" },
+                { text: "拿湿巾擦擦", health: 0, money: 0, mood: 0, end: "", description: "无事发生" },
+                { text: "不管", health: 0, money: 0, mood: 0, end: "", description: "无事发生" }
+            ]
+        },
+        {
+            question: "2.狗狗到家后，一直在叫，吵得你不得安生，这时你打算？",
+            options: [
+                { text: "可能是不舒服，带它去医院", health: 0, money: -100, mood: 0, end: "", description: "金钱-100。花了钱，医生说只是不适应新环境罢了" },
+                { text: "多和它玩，安抚它", health: -1, money: 0, mood: 0, end: "", description: "健康-1。狗狗刚到新环境不应，过多的互动会让狗狗更害怕" },
+                { text: "准备好安全的环境，让它自己待着", health: 0, money: 0, mood: 0, end: "", description: "无事发生" },
+                { text: "喂食", health: 0, money: -50, mood: 0, end: "", description: "金钱-50" }
+            ]
+        },
+        {
+            question: "3.为了狗狗的健康，我们应该带它去打疫苗，什么时候去比较合适？",
+            options: [
+                { text: "越快越好", health: -5, money: 0, mood: 0, end: "", description: "健康-5。狗狗原本就不适应新家，又打了疫苗也会有一些不适的症状，雪上加霜，对狗狗健康不利" },
+                { text: "等狗狗适应新家后", health: 0, money: 0, mood: 0, end: "", description: "无事发生" },
+                { text: "不打也没事，都是商家骗钱", health: 0, money: 0, mood: 0, end: "生病死亡", description: "狗狗之后不幸得了犬瘟热" }
+            ]
+        },
+        {
+            question: "4.你经常给狗狗洗澡，狗狗也很干净，还要给狗狗做驱虫吗？",
+            options: [
+                { text: "不用", health: 0, money: 0, mood: 0, end: "含泪送走", description: "之后狗狗被跳蚤寄生，等发现的时候家里也有了，把你也咬的一身是包，家里很生气，要求你不许再养狗" },
+                { text: "每2～3个月做驱虫", health: 0, money: -100, mood: 0, end: "", description: "金钱-100。" },
+                { text: "半年做1次", health: -2, money: -50, mood: 0, end: "", description: "健康-2，金钱-50。" }
+            ]
+        },
+        {
+            question: "5.你正在家里吃完饭，狗狗看起来也非常好奇，你会分享给狗狗哪种食物？",
+            options: [
+                { text: "三文鱼", health: 0, money: 0, mood: 0, end: "", description: "无事发生" },
+                { text: "巧克力", health: 0, money: 0, mood: 0, end: "中毒死亡", description: "巧克力对狗狗极为有害，能引起中毒。" },
+                { text: "洋葱", health: -2, money: -300, mood: 0, end: "", description: "健康-2，金钱-300。洋葱中含有一种名为正丙基二硫化物的成分，这种物质会导致溶血性贫血，还好吃的不多去医院治疗" },
+                { text: "牛奶", health: -1, money: 0, mood: 0, end: "", description: "健康-1。狗狗乳糖不耐，喝了牛奶后放臭屁、腹泻，不过还好没有更严重了" }
+            ]
+        },
+        {
+            question: "6.出门遛狗前，你想给狗狗戴上牵引绳，但狗狗不配合，你会？",
+            options: [
+                { text: "那就不戴牵引绳出门吧", health: 0, money: 0, mood: 0, end: "狗狗走失", description: "无事发生" },
+                { text: "尽量安抚狗狗让它戴上", health: 0, money: 0, mood: 0, end: "", description: "强行戴上牵引绳可能会导致狗狗不安，适度安抚更好。" },
+                { text: "今天就不去遛狗了", health: 0, money: 0, mood: -1, end: "", description: "心情-1。狗狗今天没出门有点不开心" }
+            ]
+        },
+        {
+            question: "7.回家后，家里一片狼藉，原来是狗狗在拆家，你会？",
+            options: [
+                { text: "教训一顿，不打不长记性", health: 0, money: 0, mood: 0, end: "狗狗咬人，被送走", description: "你揍狗的时候，它突然冲上来咬了你一口，你受伤流血了" },
+                { text: "给狗狗买狗玩具", health: 0, money: -100, mood: 0, end: "", description: "金钱-100。" },
+                { text: "增加遛狗的时长", health: 0, money: 0, mood: 0, end: "", description: "拆家的情况明显少了" }
+            ]
+        },
+        {
+            question: "8.狗狗非常喜欢吃零食，常常为了零食摇尾乞怜，你决定？",
+            options: [
+                { text: "只要狗狗需要就尽量满足，不差钱", health: 0, money: -50, mood: 0, end: "三高肥狗", description: "结果狗狗越来越挑食，并且越来越胖了" },
+                { text: "扣扣搜搜，少量供给", health: 0, money: 0, mood: 0, end: "", description: "无事发生" }
+            ]
+        },
+        {
+            question: "9.带狗狗去朋友家，他对新环境里的东西很好奇，它玩哪一个不会太过危险？",
+            options: [
+                { text: "花叶万年青", health: 0, money: -500, mood: 0, end: "", description: "金钱-500。对狗来说有剧毒，它啃了一口还好被你及时阻止，索性吃的不多，去医院进行治疗后好了" },
+                { text: "水仙花", health: 0, money: -500, mood: 0, end: "", description: "金钱-500。对狗来说有剧毒，它啃了一口还好被你及时阻止，索性吃的不多，去医院进行治疗后好。" },
+                { text: "塑料瓶", health: 0, money: 0, mood: 0, end: "", description: "无事发生" },
+                { text: "橡皮", health: -2, money: 0, mood: 0, end: "", description: "健康-2。小狗容易误食橡皮" }
+            ]
+        },
+        {
+            question: "10.你有事出门3天，家里没有其他人，这时你选择？",
+            options: [
+                { text: "把狗狗寄养在正规的宠物医院", health: 0, money: -300, mood: 0, end: "", description: "金钱-300。" },
+                { text: "在家里准备好充足的食物和水，让狗狗自己在家", health: -2, money: 0, mood: 0, end: "", description: "健康-2。狗狗很孤独又缺乏运动，心情不好，食欲不振" },
+                { text: "请信任的人，每天遛狗铲屎", health: 0, money: -150, mood: 0, end: "", description: "金钱-150。" }
+            ]
+        }
+    ];
+
+    // 游戏开始函数
+    function startGame() {
+        gameEnded = false;
+        money = 500;
+        health = 10;
+        mood = 10;
+
+        // 清空结束信息和选项描述
+        document.getElementById("option-description").innerText = "";
+        document.getElementById("end-message").innerText = "";
+
+        // 更新计分板
+        updateScoreBoard();
+
+        // 隐藏重新开始按钮
+        document.getElementById("restart-button").style.display = "none";
+
+        // 开始第一个问题
+        nextQuestion(0);
+    }
+
+    // 更新计分板
+    function updateScoreBoard() {
+        document.getElementById("money").innerText = "金钱: " + money;
+        document.getElementById("health").innerText = "生命值: " + health;
+        document.getElementById("mood").innerText = "心情: " + mood;
+    }
+
+    // 显示问题和选项
+    function nextQuestion(questionIndex) {
+        if (gameEnded) return;
+
+        const questionData = questions[questionIndex];
+        document.getElementById("question").innerText = questionData.question;
+
+        let optionsHtml = "";
+        questionData.options.forEach((option, index) => {
+            optionsHtml += `<button class="option" onclick="makeChoice(${questionIndex}, ${index})">${option.text}</button>`;
+        });
+        document.getElementById("options").innerHTML = optionsHtml;
+    }
+
+    // 玩家选择选项
+    function makeChoice(questionIndex, optionIndex) {
+        if (gameEnded) return;
+
+        const selectedOption = questions[questionIndex].options[optionIndex];
+        money += selectedOption.money;
+        health += selectedOption.health;
+        mood += selectedOption.mood;
+
+        // 显示选项描述
+        document.getElementById("option-description").innerText = selectedOption.description;
+
+        // 立即触发结局
+        if (selectedOption.end) {
+            gameEnded = true;
+            showEndMessage(selectedOption.end);
+            return; // 结束当前逻辑，不再继续执行后续问题
+        }
+
+        // 如果金钱或生命值为负数，结束游戏并显示结局
+        if (money <= 0 || health <= 0) {
+            gameEnded = true;
+            showEndMessage("游戏结束，您破产了！");
+            return; // 结束当前逻辑，不再继续执行后续问题
+        }
+
+        updateScoreBoard();
+
+        // 继续游戏逻辑
+        setTimeout(() => {
+            if (questionIndex < questions.length - 1) {
+                nextQuestion(questionIndex + 1);
+            }
+        }, 2000); // 给用户时间看到选项描述，2秒后继续游戏
+    }
+
+    // 显示结局消息
+    function showEndMessage(endMessage) {
+        document.getElementById("end-message").innerText = endMessage;
+        document.getElementById("restart-button").style.display = "block"; // 显示重新开始按钮
+    }
+
+    // 启动游戏
+    startGame();
+</script>
+
+</body>
+</html>
